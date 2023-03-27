@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>WebSocket</title>
+
+    <style type="text/css">
+        .artboard.artboard-demo.phone-1 {
+            display: flex;
+            justify-content: flex-start;
+            text-align: left;
+            align-items: flex-start;
+        }
+
+        .chat-list {
+            max-height: 480px;
+            overflow-y: auto;
+            width: 100%;
+        }
+
+        .chat-wrap {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .input-message {
+            border: 1px solid #eee;
+            padding: 14px;
+        }
+
+        .btn {
+            color: white !important;
+            background: #333 !important;
+        }
+    </style>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@2.51.5/dist/full.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body>
+
+
+
+
+    <div class="chat-wrap">
+        <div class="mockup-phone" style="position:relative">
+            <div class="camera"></div>
+            <div class="display">
+                <div class="artboard artboard-demo phone-1">
+                    <div class="chat-list" style="margin-top: 1rem; padding: 1rem;"></div>
+                    <div class="form" style="position:absolute;bottom:1.5rem;width: 100%; padding:14px;">
+                        <form onsubmit="app.doSendMessage(); return false;">
+                            <div class="placeholder">
+                                <label>Hello <b class="username"></b>. Say something:</label>
+                            </div>
+                            <input class="input-message" type="text" placeholder="Enter message">
+                            <button class="btn btn-primary" type="submit">Send</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script type="text/javascript">
+        var app = {}
+        app.ws = undefined
+        app.container = undefined
+        app.init = function () {
+            if (!(window.WebSocket)) {
+                alert('Your browser does not support WebSocket')
+                return
+            }
+
+            var name = prompt('Enter your name please:') || "No name"
+            document.querySelector('.username').innerText = name
+
+            app.container = document.querySelector('.chat-list')
+
+            app.ws = new WebSocket("ws://localhost:8080/ws?username=" + name)
+
+            app.ws.onopen = function () {
+                var message = '<b>me</b>: connected'
+                app.print(message)
+            }
+            app.ws.onmessage = function (event) {
+                var res = JSON.parse(event.data)
+
+                var messsage = ''
+                if (res.Type === 'New User') {
+                    message = 'User <b>' + res.From + '</b>: connected'
+                } else if (res.Type === 'Leave') {
+                    message = 'User <b>' + res.From + '</b>: disconnected'
+                } else {
+                    message = '<b>' + res.From + '</b>: ' + res.Message
+                }
+
+                app.print(message)
+            }
+
+            app.ws.onclose = function () {
+                var message = '<b>me</b>: disconnected'
+                app.print(message)
+            }
+
+            app.print = function (message) {
+                var el = document.createElement("p")
+                el.innerHTML = message
+                app.container.append(el)
+            }
+
+            app.doSendMessage = function () {
+                var messageRaw = document.querySelector('.input-message').value
+                app.ws.send(JSON.stringify({
+                    Message: messageRaw
+                }));
+
+                var message = '<b>me</b>: ' + messageRaw
+                app.print(message)
+
+                document.querySelector('.input-message').value = ''
+            }
+        }
+
+        window.onload = app.init
+
+
+
+    </script>
+</body>
+
+</html>
